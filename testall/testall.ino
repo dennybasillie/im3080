@@ -1,4 +1,5 @@
 //Mode : 0  = RESET ; 1 = PIANO ; 2 = BEAT ; 3 = X'MAS ; 6 = DEFAULT
+#include <Wire.h>
 
 int prevMode = -1;
 int currMode = 2;
@@ -144,6 +145,7 @@ void printVR(uint8_t *buf)
 void setup() {
   Serial.begin(115200);
   myVR.begin(9600);
+  Wire.begin();
 
   FastLED.addLeds<NEOPIXEL, 5>(leds[0], NUM_LEDS_PER_STRIP);
   FastLED.addLeds<NEOPIXEL, 6>(leds[1], NUM_LEDS_PER_STRIP);
@@ -164,6 +166,11 @@ void setup() {
 }
 
 void loop() {
+  Wire.beginTransmission(8); // transmit to device #8
+  Wire.write(1);        // sends 1
+  Wire.endTransmission();    // stop transmitting
+  delay(500);
+
   int ret;
   ret = myVR.recognize(buf, 50);
   if (ret > 0) {
@@ -208,8 +215,12 @@ void loop() {
     pianoMode();
   } else if (currMode == 2) {
     if (prevMode != currMode) {
+      //  delay(10000);
       prevMode = currMode;
-      Serial.write(1);
+      Wire.beginTransmission(8); // transmit to device #8
+      Wire.write(1);        // sends 1
+      Wire.endTransmission();    // stop transmitting
+      delay(500);
     }
     beatMode();
   } else if (currMode == 3) {
@@ -289,20 +300,20 @@ void testMode(int n) {
 //MODE (reset, piano, beat, christmas)
 
 void reset() {
-    getSwitchValue();
-    int sum = 0;
-    for (int n = 0; n <= 7; n++)
-    {
-      isInitial[n] = switchVar1 & (1 << n); //extract bit at position n
-      if (isInitial[n]) {
-        ShiftPWM.SetOne(n * 2, 0);
-        Serial.println(sum);
-        sum++;
-      }
+  getSwitchValue();
+  int sum = 0;
+  for (int n = 0; n <= 7; n++)
+  {
+    isInitial[n] = switchVar1 & (1 << n); //extract bit at position n
+    if (isInitial[n]) {
+      ShiftPWM.SetOne(n * 2, 0);
+      //Serial.println(sum);
+      sum++;
     }
-    if (sum == 8) {
-      currSeq = -1;
-    }
+  }
+  if (sum == 8) {
+    currSeq = -1;
+  }
 }
 
 void pianoMode() {
@@ -349,7 +360,7 @@ void beatMode() {
       isInitial[n] = switchVar1 & (1 << n); //extract bit at position n
       if (isInitial[n]) {
         ShiftPWM.SetOne(n * 2, 0);
-        Serial.println(sum);
+        //Serial.println(sum);
         sum++;
       }
     }
